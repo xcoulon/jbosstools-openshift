@@ -70,7 +70,7 @@ public class OpenShiftPublishController extends StandardFileSystemPublishControl
 	
 	public void publishStart(final IProgressMonitor monitor) 
 			throws CoreException {
-		IProject deployProject = getMagicProject(getServer());
+		final IProject deployProject = getMagicProject(getServer());
 		if (!ProjectUtils.isAccessible(deployProject)) {
 			throw new CoreException(new Status(IStatus.ERROR,
 					OpenShiftCoreActivator.PLUGIN_ID,
@@ -78,10 +78,10 @@ public class OpenShiftPublishController extends StandardFileSystemPublishControl
 							getServer().getName(), deployProject.getName())));
 		}
 		rsync = createRSync(getServer(), monitor);
-		File localDeploymentDirectory = new File(getDeploymentOptions().getDeploymentsRootFolder(true));
-		MultiStatus status = new MultiStatus(OpenShiftCoreActivator.PLUGIN_ID, 0, 
+		final File localDeploymentDirectory = new File(getDeploymentOptions().getDeploymentsRootFolder(true));
+		final MultiStatus status = new MultiStatus(OpenShiftCoreActivator.PLUGIN_ID, 0, 
 				NLS.bind("Could not sync all pods to folder {0}", localDeploymentDirectory.getAbsolutePath()), null);
-		rsync.syncPodsToDirectory(localDeploymentDirectory, status);
+		rsync.syncPodsToDirectory(localDeploymentDirectory, status, outputStream);
 		
 		// If the magic project is *also* a module on the server, do nothing
 		if( !modulesIncludesMagicProject(getServer(), deployProject)) {
@@ -144,11 +144,11 @@ public class OpenShiftPublishController extends StandardFileSystemPublishControl
 		super.publishFinish(monitor);
 		try {
 			if( rsync != null ) {
-				File deployFolder = new File(getDeploymentOptions().getDeploymentsRootFolder(true));
-				IService service = OpenShiftServerUtils.getService(getServer());
-				MultiStatus status = new MultiStatus(OpenShiftCoreActivator.PLUGIN_ID, 0, 
+				final File deployFolder = new File(getDeploymentOptions().getDeploymentsRootFolder(true));
+				final IService service = OpenShiftServerUtils.getService(getServer());
+				final MultiStatus status = new MultiStatus(OpenShiftCoreActivator.PLUGIN_ID, 0, 
 						NLS.bind("Could not sync {0} to all pods running the service {1}", deployFolder, service.getName()), null);
-				rsync.syncDirectoryToPods(deployFolder, status);
+				rsync.syncDirectoryToPods(deployFolder, status, outputStream);
 				
 				// Remove all *.dodeploy files from this folder. 
 				Stream.of(deployFolder.listFiles())
