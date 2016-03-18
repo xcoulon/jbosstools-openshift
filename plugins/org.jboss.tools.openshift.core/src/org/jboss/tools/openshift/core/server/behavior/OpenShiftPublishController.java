@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.jboss.tools.openshift.core.server.behavior;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.stream.Stream;
@@ -28,6 +29,7 @@ import org.eclipse.wst.server.core.model.ModuleDelegate;
 import org.eclipse.wst.server.core.model.ServerBehaviourDelegate;
 import org.eclipse.wst.server.core.util.ProjectModule;
 import org.jboss.ide.eclipse.as.core.server.internal.v7.DeploymentMarkerUtils;
+import org.jboss.ide.eclipse.as.wtp.core.console.ServerConsoleModel;
 import org.jboss.ide.eclipse.as.wtp.core.server.behavior.IPublishController;
 import org.jboss.tools.as.core.server.controllable.subsystems.internal.StandardFileSystemPublishController;
 import org.jboss.tools.common.util.FileUtils;
@@ -43,6 +45,7 @@ import com.openshift.restclient.model.IService;
 public class OpenShiftPublishController extends StandardFileSystemPublishController implements IPublishController {
 
 	private RSync rsync = null;
+	
 	private RSync createRSync(IServer server, IProgressMonitor monitor) throws CoreException {
 		String location = OCBinary.getInstance().getLocation();
 		if( location == null ) {
@@ -77,11 +80,18 @@ public class OpenShiftPublishController extends StandardFileSystemPublishControl
 					NLS.bind("Server adapter {0} cannot publish. Required project {1} is missing or inaccessible.", 
 							getServer().getName(), deployProject.getName())));
 		}
+		
+		ByteArrayOutputStream consoleWriterStream = new ByteArrayOutputStream();
+		
 		rsync = createRSync(getServer(), monitor);
 		final File localDeploymentDirectory = new File(getDeploymentOptions().getDeploymentsRootFolder(true));
 		final MultiStatus status = new MultiStatus(OpenShiftCoreActivator.PLUGIN_ID, 0, 
 				NLS.bind("Could not sync all pods to folder {0}", localDeploymentDirectory.getAbsolutePath()), null);
-		rsync.syncPodsToDirectory(localDeploymentDirectory, status, outputStream);
+		rsync.syncPodsToDirectory(localDeploymentDirectory, status, consoleWriterStream);
+		
+		String contents = new String(consoleWriterStream.toByteArray());
+		ServerConsoleModel.getDefault().getConsoleWriter().writeToShell(getServer().getId(), new String[]{contents});
+		
 		
 		// If the magic project is *also* a module on the server, do nothing
 		if( !modulesIncludesMagicProject(getServer(), deployProject)) {
@@ -144,11 +154,15 @@ public class OpenShiftPublishController extends StandardFileSystemPublishControl
 		super.publishFinish(monitor);
 		try {
 			if( rsync != null ) {
+				ByteArrayOutputStream consoleWriterStream = new ByteArrayOutputStream();
 				final File deployFolder = new File(getDeploymentOptions().getDeploymentsRootFolder(true));
 				final IService service = OpenShiftServerUtils.getService(getServer());
 				final MultiStatus status = new MultiStatus(OpenShiftCoreActivator.PLUGIN_ID, 0, 
 						NLS.bind("Could not sync {0} to all pods running the service {1}", deployFolder, service.getName()), null);
-				rsync.syncDirectoryToPods(deployFolder, status, outputStream);
+				rsync.syncDirectoryToPods(deployFolder, status, consoleWriterStream);
+				
+				String contents = new String(consoleWriterStream.toByteArray());
+				ServerConsoleModel.getDefault().getConsoleWriter().writeToShell(getServer().getId(), new String[]{contents});
 				
 				// Remove all *.dodeploy files from this folder. 
 				Stream.of(deployFolder.listFiles())
