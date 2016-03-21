@@ -13,8 +13,11 @@ package org.jboss.tools.openshift.internal.ui.models;
 import java.beans.IndexedPropertyChangeEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.jboss.tools.openshift.common.core.IRefreshable;
 import org.jboss.tools.openshift.core.connection.IOpenShiftConnection;
@@ -105,33 +108,43 @@ public class OpenShiftProjectUIModel extends ResourcesUIModel implements IProjec
 	public <T extends IResource> void setResources(Collection<T> resources, String kind) {
 		switch(kind) {
 		case ResourceKind.BUILD:
-			setBuildResources((Collection<IBuild>) resources);
+			setBuilds(init((Collection<IBuild>) resources));
 			break;
 		case ResourceKind.BUILD_CONFIG:
-			setBuildConfigResources((Collection<IResource>) resources);
+			setBuildConfigs(init((Collection<IResource>) resources));
 			break;
 		case ResourceKind.DEPLOYMENT_CONFIG:
-			setDeploymentConfigResources((Collection<IResource>) resources);
+			setDeploymentConfigs(init((Collection<IResource>) resources));
 			break;
 		case ResourceKind.IMAGE_STREAM:
-			setImageStreamResources((Collection<IResource>) resources);
+			setImageStreams(init((Collection<IResource>) resources));
 			break;
 		case ResourceKind.POD:
-			setPodResources((Collection<IPod>) resources);
+			setPods(init((Collection<IPod>) resources));
 			break;
 		case ResourceKind.ROUTE:
-			setRouteResources((Collection<IResource>) resources);
+			setRoutes(init((Collection<IResource>) resources));
 			break;
 		case ResourceKind.REPLICATION_CONTROLLER:
-			setReplicationControllerResources((Collection<IResource>) resources);
+			setReplicationControllers(init((Collection<IResource>) resources));
 			break;
 		case ResourceKind.SERVICE:
-			setServiceResources((Collection<IResource>) resources);
+			setServices(init((Collection<IResource>) resources));
 			break;
 		default:
 		}
-
 	}
 
+	/**
+	 * Converts the given {@link List} of {@link IResource} into a {@link List} of {@link IResourcesUIModel}
+	 * @param resources the list of items to wrap into {@link IResourceUIModel}
+	 * @return the output list
+	 */
+	private <T extends IResource> List<IResourceUIModel> init(Collection<T> resources) {
+		if(resources != null) {
+			return resources.stream().map(r->new OpenShiftResourceUIModel(r,this)).collect(Collectors.toList());
+		}
+		return new ArrayList<>();
+	}
 	
 }

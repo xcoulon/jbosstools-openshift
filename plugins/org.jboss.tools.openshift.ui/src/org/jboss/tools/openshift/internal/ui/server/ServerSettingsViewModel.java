@@ -405,20 +405,12 @@ public class ServerSettingsViewModel extends ServiceViewModel {
 		}
 
 		@Override
-		public void setBuildResources(Collection<IBuild> builds) {
-		}
-
-		@Override
 		public Collection<IResourceUIModel> getImageStreams() {
 			return null;
 		}
 
 		@Override
 		public void setImageStreams(Collection<IResourceUIModel> models) {
-		}
-
-		@Override
-		public void setImageStreamResources(Collection<IResource> streams) {
 		}
 
 		@Override
@@ -431,20 +423,12 @@ public class ServerSettingsViewModel extends ServiceViewModel {
 		}
 
 		@Override
-		public void setDeploymentConfigResources(Collection<IResource> dcs) {
-		}
-
-		@Override
 		public Collection<IResourceUIModel> getPods() {
 			return null;
 		}
 
 		@Override
 		public void setPods(Collection<IResourceUIModel> pods) {
-		}
-
-		@Override
-		public void setPodResources(Collection<IPod> pods) {
 		}
 
 		@Override
@@ -457,20 +441,12 @@ public class ServerSettingsViewModel extends ServiceViewModel {
 		}
 
 		@Override
-		public void setRouteResources(Collection<IResource> routes) {
-		}
-
-		@Override
 		public Collection<IResourceUIModel> getReplicationControllers() {
 			return null;
 		}
 
 		@Override
 		public void setReplicationControllers(Collection<IResourceUIModel> rcs) {
-		}
-
-		@Override
-		public void setReplicationControllerResources(Collection<IResource> rcs) {
 		}
 
 		@Override
@@ -484,20 +460,12 @@ public class ServerSettingsViewModel extends ServiceViewModel {
 		}
 
 		@Override
-		public void setBuildConfigResources(Collection<IResource> buildConfigs) {
-		}
-
-		@Override
 		public Collection<IResourceUIModel> getServices() {
 			return null;
 		}
 
 		@Override
 		public void setServices(Collection<IResourceUIModel> services) {
-		}
-
-		@Override
-		public void setServiceResources(Collection<IResource> services) {
 		}
 
 		@Override

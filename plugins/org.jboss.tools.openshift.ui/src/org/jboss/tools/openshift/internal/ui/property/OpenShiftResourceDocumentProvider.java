@@ -20,7 +20,6 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.operation.IRunnableContext;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
@@ -105,56 +104,22 @@ public class OpenShiftResourceDocumentProvider extends AbstractDocumentProvider 
 	@Override
 	protected void doSaveDocument(IProgressMonitor monitor, Object element, IDocument document, boolean overwrite)
 			throws CoreException {
-		OpenShiftResourceInput input = getInput(element);
+		final OpenShiftResourceInput input = getInput(element);
 		if (input == null) {
 			return;
 		}
-
-		IResource resource = input.getResource();
-		IClient client = resource.accept(new CapabilityVisitor<IClientCapability, IClient>() {
-			@Override
-			public IClient visit(IClientCapability cap) {
-				return cap.getClient();
-			}
-		}, null);
-		
-		IProgressService service = PlatformUI.getWorkbench().getProgressService();
-		Connection connection = input.getConnection();
-		String resourceName = input.getName();
-		IResource newResource = connection.getResourceFactory().create(document.get());
-
-		final Exception[] exceptions = new Exception[1];
-
-		Job updateResourceJob = new Job("Update "+resourceName) {
-			@Override
-			protected IStatus run(IProgressMonitor monitor) {
-				try {
-					client.update(newResource);
-				} catch (Exception e) {
-					exceptions[0] = e;
-					Display.getDefault().asyncExec(() -> setDirty(element));
-					String problem = e.getMessage();
-					if (e instanceof OpenShiftException) {
-						OpenShiftException oe = (OpenShiftException)e;
-						if (oe.getStatus()!=null) {
-							problem = oe.getStatus().getMessage();
-						}
-					}
-					IStatus error =	OpenShiftUIActivator.statusFactory().errorStatus(
-							NLS.bind("Could not update \"{0}\" for project \"{1}\" : {2}", new String[]{resourceName, resource.getNamespace(), problem}), e);
-					return error;
-				}
-				return Status.OK_STATUS;
-			}
-		};
+		final IProgressService service = PlatformUI.getWorkbench().getProgressService();
+		final Connection connection = input.getConnection();
+		final IResource resource = input.getResource();
+		final UpdateResourceJob updateResourceJob = new UpdateResourceJob(connection, resource, document);
 		
 		updateResourceJob.schedule();
-		Shell shell = Display.getCurrent().getActiveShell();
-		service.showInDialog(shell, updateResourceJob);
+		service.showInDialog(Display.getCurrent().getActiveShell(), updateResourceJob);
 		// In the really really unlikely event the jobs finished before the end of this method call,
 		// we need to ensure the dirty flag stays set to true
-		if(exceptions[0] != null) {
-			throw new CoreException(OpenShiftUIActivator.statusFactory().errorStatus(exceptions[0]));
+		if(updateResourceJob.getCaughtException() != null) {
+			Display.getDefault().asyncExec(() -> setDirty(element));
+			throw new CoreException(OpenShiftUIActivator.statusFactory().errorStatus(updateResourceJob.getCaughtException()));
 		}
 	}
 
@@ -187,6 +152,73 @@ public class OpenShiftResourceDocumentProvider extends AbstractDocumentProvider 
 		if (elementInfo != null) {
 			elementInfo.fCanBeSaved = true;
 			fireElementDirtyStateChanged(element, true);
+		}
+	}
+	
+	private static class UpdateResourceJob extends Job {
+		
+		/** The OpenShift connection. */
+		private final Connection connection;
+		
+		/** the IResource to update. */
+		private final IResource resource;
+		
+		/** The {@link IDocument} containing the new resource representation. */
+		private final IDocument document;
+		
+		/** the updated version of the IResource. */
+		private IResource updatedResource;
+
+		/** The caught exception if something went wrong during the update. */
+		private Exception caughtException;
+		
+		/**
+		 * Constructor
+		 * @param connection 
+		 */
+		UpdateResourceJob(final Connection connection, final IResource resource, final IDocument document) {
+			super("Updating " + resource.getName());
+			this.connection = connection;
+			this.resource = resource;
+			this.document = document;
+		}
+		
+		IResource getUpdatedResource() {
+			return updatedResource;
+		}
+		
+		Exception getCaughtException() {
+			return caughtException;
+		}
+		
+		@Override
+		protected IStatus run(IProgressMonitor monitor) {
+			try {
+				final IClient client = resource.accept(new CapabilityVisitor<IClientCapability, IClient>() {
+					@Override
+					public IClient visit(IClientCapability cap) {
+						return cap.getClient();
+					}
+				}, null);
+				this.updatedResource = client.update(connection.getResourceFactory().create(document.get()));
+			} catch (Exception e) {
+				this.caughtException = e;
+				final String problem = getErrorMessage(e);
+				final IStatus error = OpenShiftUIActivator.statusFactory()
+						.errorStatus(NLS.bind("Could not update \"{0}\" for project \"{1}\" : {2}",
+								new String[] { resource.getName(), resource.getNamespace(), problem }), e);
+				return error;
+			}
+			return Status.OK_STATUS;			}
+
+		private String getErrorMessage(Exception e) {
+			if (e instanceof OpenShiftException) {
+				final OpenShiftException oe = (OpenShiftException)e;
+				if (oe.getStatus()!=null) {
+					return oe.getStatus().getMessage();
+				}
+			}
+			return e.getMessage();
 		}
 	}
 	

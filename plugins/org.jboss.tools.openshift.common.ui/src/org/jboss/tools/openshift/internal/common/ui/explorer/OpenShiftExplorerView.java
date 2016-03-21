@@ -100,6 +100,7 @@ public class OpenShiftExplorerView extends CommonNavigator implements IConnectio
 
 	@Override
 	public void connectionChanged(IConnection connection, String property, Object oldValue, Object newValue) {
+		Display.getDefault().asyncExec(() -> getCommonViewer().refresh(newValue));
 	}
 
 	@Override

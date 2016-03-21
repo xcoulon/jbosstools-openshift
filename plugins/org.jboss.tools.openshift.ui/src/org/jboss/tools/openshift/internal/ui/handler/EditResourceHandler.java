@@ -40,15 +40,13 @@ public class EditResourceHandler extends OpenInWebBrowserHandler {
 	@Override
 	public Object execute(final ExecutionEvent event) throws ExecutionException {
 		ISelection currentSelection = HandlerUtil.getActivePart(event).getSite().getWorkbenchWindow().getSelectionService().getSelection();
-		
 		IResource resource = UIUtils.getFirstElement(currentSelection, IResource.class);
-		Connection connection = null;
 		Shell shell = HandlerUtil.getActiveShell(event);
 		if ( resource == null) {
 			MessageDialog.openWarning(shell, "Nothing to edit", "This is not the resource you are looking for.");
 			return null;
 		}
-		connection = ConnectionsRegistryUtil.safeGetConnectionFor(resource);
+		final Connection connection = ConnectionsRegistryUtil.safeGetConnectionFor(resource);
 		if (connection != null) {
 			IWorkbenchWindow win = HandlerUtil.getActiveWorkbenchWindow(event);
 			try {

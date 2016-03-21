@@ -75,10 +75,6 @@ public class Deployment extends ResourcesUIModel
 	}
 
 	@Override
-	public void setServiceResources(Collection<IResource> services) {
-	}
-	
-	@Override
 	public void handleAddToCache(IResourceCache cache, IResource resource) {
 		switch(resource.getKind()) {
 			case ResourceKind.BUILD:
